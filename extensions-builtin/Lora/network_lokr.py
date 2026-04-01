@@ -1,13 +1,16 @@
-import torch
-
 import lyco_helpers
 import network
+import torch
 
 
 class ModuleTypeLokr(network.ModuleType):
     def create_module(self, net: network.Network, weights: network.NetworkWeights):
-        has_1 = "lokr_w1" in weights.w or ("lokr_w1_a" in weights.w and "lokr_w1_b" in weights.w)
-        has_2 = "lokr_w2" in weights.w or ("lokr_w2_a" in weights.w and "lokr_w2_b" in weights.w)
+        has_1 = "lokr_w1" in weights.w or (
+            "lokr_w1_a" in weights.w and "lokr_w1_b" in weights.w
+        )
+        has_2 = "lokr_w2" in weights.w or (
+            "lokr_w2_a" in weights.w and "lokr_w2_b" in weights.w
+        )
         if has_1 and has_2:
             return NetworkModuleLokr(net, weights)
 
@@ -22,7 +25,7 @@ def make_kron(orig_shape, w1, w2):
 
 
 class NetworkModuleLokr(network.NetworkModule):
-    def __init__(self,  net: network.Network, weights: network.NetworkWeights):
+    def __init__(self, net: network.Network, weights: network.NetworkWeights):
         super().__init__(net, weights)
 
         self.w1 = weights.w.get("lokr_w1")

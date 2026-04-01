@@ -1,7 +1,7 @@
 import os
 import sys
 
-from modules import modelloader, devices
+from modules import devices, modelloader
 from modules.shared import opts
 from modules.upscaler import Upscaler, UpscalerData
 from modules.upscaler_utils import upscale_with_model
@@ -39,5 +39,5 @@ class UpscalerHAT(Upscaler):
         return modelloader.load_spandrel_model(
             path,
             device=devices.device_esrgan,  # TODO: should probably be device_hat
-            expected_architecture='HAT',
+            expected_architecture="HAT",
         )

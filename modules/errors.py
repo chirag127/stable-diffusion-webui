@@ -2,12 +2,14 @@ import sys
 import textwrap
 import traceback
 
-
 exception_records = []
 
 
 def format_traceback(tb):
-    return [[f"{x.filename}, line {x.lineno}, {x.name}", x.line] for x in traceback.extract_tb(tb)]
+    return [
+        [f"{x.filename}, line {x.lineno}, {x.name}", x.line]
+        for x in traceback.extract_tb(tb)
+    ]
 
 
 def format_exception(e, tb):
@@ -55,10 +57,10 @@ def print_error_explanation(message):
     lines = message.strip().split("\n")
     max_len = max([len(x) for x in lines])
 
-    print('=' * max_len, file=sys.stderr)
+    print("=" * max_len, file=sys.stderr)
     for line in lines:
         print(line, file=sys.stderr)
-    print('=' * max_len, file=sys.stderr)
+    print("=" * max_len, file=sys.stderr)
 
 
 def display(e: Exception, task, *, full_traceback=False):
@@ -72,7 +74,10 @@ def display(e: Exception, task, *, full_traceback=False):
     print(*te.format(), sep="", file=sys.stderr)
 
     message = str(e)
-    if "copying a param with shape torch.Size([640, 1024]) from checkpoint, the shape in current model is torch.Size([640, 768])" in message:
+    if (
+        "copying a param with shape torch.Size([640, 1024]) from checkpoint, the shape in current model is torch.Size([640, 768])"
+        in message
+    ):
         print_error_explanation("""
 The most likely cause of this is you are trying to load Stable Diffusion 2.0 model without specifying its config file.
 See https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features#stable-diffusion-20 for how to solve this.
@@ -101,11 +106,11 @@ def run(code, task):
 
 
 def check_versions():
-    from packaging import version
-    from modules import shared
-
-    import torch
     import gradio
+    import torch
+    from packaging import version
+
+    from modules import shared
 
     expected_torch_version = "2.1.2"
     expected_xformers_version = "0.0.23.post1"
@@ -125,7 +130,9 @@ Use --skip-version-check commandline argument to disable this check.
     if shared.xformers_available:
         import xformers
 
-        if version.parse(xformers.__version__) < version.parse(expected_xformers_version):
+        if version.parse(xformers.__version__) < version.parse(
+            expected_xformers_version
+        ):
             print_error_explanation(f"""
 You are running xformers {xformers.__version__}.
 The program is tested to work with xformers {expected_xformers_version}.
@@ -147,4 +154,3 @@ Reasons why you have the mismatched gradio version can be:
 
 Use --skip-version-check commandline argument to disable this check.
         """.strip())
-

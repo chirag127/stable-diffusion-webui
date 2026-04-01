@@ -1,5 +1,6 @@
-from modules import scripts_postprocessing, ui_components, deepbooru, shared
 import gradio as gr
+
+from modules import deepbooru, scripts_postprocessing, shared, ui_components
 
 
 class ScriptPostprocessingCeption(scripts_postprocessing.ScriptPostprocessing):
@@ -8,7 +9,9 @@ class ScriptPostprocessingCeption(scripts_postprocessing.ScriptPostprocessing):
 
     def ui(self):
         with ui_components.InputAccordion(False, label="Caption") as enable:
-            option = gr.CheckboxGroup(value=["Deepbooru"], choices=["Deepbooru", "BLIP"], show_label=False)
+            option = gr.CheckboxGroup(
+                value=["Deepbooru"], choices=["Deepbooru", "BLIP"], show_label=False
+            )
 
         return {
             "enable": enable,

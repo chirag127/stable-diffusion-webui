@@ -5,7 +5,6 @@ import gradio as gr
 from modules import errors, shared
 from modules.paths_internal import script_path
 
-
 # https://huggingface.co/datasets/freddyaboulton/gradio-theme-subdomains/resolve/main/subdomains.json
 gradio_hf_hub_themes = [
     "gradio/base",
@@ -37,7 +36,7 @@ gradio_hf_hub_themes = [
     "Taithrah/Minimal",
     "ysharma/huggingface",
     "ysharma/steampunk",
-    "NoCrypt/miku"
+    "NoCrypt/miku",
 ]
 
 
@@ -46,16 +45,18 @@ def reload_gradio_theme(theme_name=None):
         theme_name = shared.opts.gradio_theme
 
     default_theme_args = dict(
-        font=["Source Sans Pro", 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        font_mono=['IBM Plex Mono', 'ui-monospace', 'Consolas', 'monospace'],
+        font=["Source Sans Pro", "ui-sans-serif", "system-ui", "sans-serif"],
+        font_mono=["IBM Plex Mono", "ui-monospace", "Consolas", "monospace"],
     )
 
     if theme_name == "Default":
         shared.gradio_theme = gr.themes.Default(**default_theme_args)
     else:
         try:
-            theme_cache_dir = os.path.join(script_path, 'tmp', 'gradio_themes')
-            theme_cache_path = os.path.join(theme_cache_dir, f'{theme_name.replace("/", "_")}.json')
+            theme_cache_dir = os.path.join(script_path, "tmp", "gradio_themes")
+            theme_cache_path = os.path.join(
+                theme_cache_dir, f'{theme_name.replace("/", "_")}.json'
+            )
             if shared.opts.gradio_themes_cache and os.path.exists(theme_cache_path):
                 shared.gradio_theme = gr.themes.ThemeClass.load(theme_cache_path)
             else:
@@ -67,8 +68,12 @@ def reload_gradio_theme(theme_name=None):
             shared.gradio_theme = gr.themes.Default(**default_theme_args)
 
     # append additional values gradio_theme
-    shared.gradio_theme.sd_webui_modal_lightbox_toolbar_opacity = shared.opts.sd_webui_modal_lightbox_toolbar_opacity
-    shared.gradio_theme.sd_webui_modal_lightbox_icon_opacity = shared.opts.sd_webui_modal_lightbox_icon_opacity
+    shared.gradio_theme.sd_webui_modal_lightbox_toolbar_opacity = (
+        shared.opts.sd_webui_modal_lightbox_toolbar_opacity
+    )
+    shared.gradio_theme.sd_webui_modal_lightbox_icon_opacity = (
+        shared.opts.sd_webui_modal_lightbox_icon_opacity
+    )
 
 
 def resolve_var(name: str, gradio_theme=None, history=None):
@@ -108,5 +113,5 @@ def resolve_var(name: str, gradio_theme=None, history=None):
 
     except Exception:
         name = history[0] if history else name
-        errors.report(f'resolve_color({name})', exc_info=True)
-        return '#000000' if name.endswith("_dark") else '#ffffff'
+        errors.report(f"resolve_color({name})", exc_info=True)
+        return "#000000" if name.endswith("_dark") else "#ffffff"

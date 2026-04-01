@@ -6,15 +6,13 @@ Original author: @tfernd Github: https://github.com/tfernd/HyperTile
 
 from __future__ import annotations
 
+import math
+import random
 from dataclasses import dataclass
+from functools import cache, wraps
 from typing import Callable
 
-from functools import wraps, cache
-
-import math
 import torch.nn as nn
-import random
-
 from einops import rearrange
 
 
@@ -27,7 +25,6 @@ class HypertileParams:
     aspect_ratio: float = 1.0
     forward = None
     enabled = False
-
 
 
 # TODO add SD-XL layers
@@ -105,11 +102,11 @@ DEPTH_LAYERS_XL = {
     ],
     1: [
         # SD 1.5 U-Net (diffusers)
-        #"down_blocks.1.attentions.0.transformer_blocks.0.attn1",
-        #"down_blocks.1.attentions.1.transformer_blocks.0.attn1",
-        #"up_blocks.2.attentions.0.transformer_blocks.0.attn1",
-        #"up_blocks.2.attentions.1.transformer_blocks.0.attn1",
-        #"up_blocks.2.attentions.2.transformer_blocks.0.attn1",
+        # "down_blocks.1.attentions.0.transformer_blocks.0.attn1",
+        # "down_blocks.1.attentions.1.transformer_blocks.0.attn1",
+        # "up_blocks.2.attentions.0.transformer_blocks.0.attn1",
+        # "up_blocks.2.attentions.1.transformer_blocks.0.attn1",
+        # "up_blocks.2.attentions.2.transformer_blocks.0.attn1",
         # SD 1.5 U-Net (ldm)
         "input_blocks.4.1.transformer_blocks.1.attn1",
         "input_blocks.5.1.transformer_blocks.1.attn1",
@@ -182,11 +179,12 @@ DEPTH_LAYERS_XL = {
         "middle_block.1.transformer_blocks.8.attn1",
         "middle_block.1.transformer_blocks.9.attn1",
     ],
-    3 : [] # TODO - separate layers for SD-XL
+    3: [],  # TODO - separate layers for SD-XL
 }
 
 
 RNG_INSTANCE = random.Random()
+
 
 @cache
 def get_divisors(value: int, min_value: int, /, max_options: int = 1) -> list[int]:
@@ -195,10 +193,14 @@ def get_divisors(value: int, min_value: int, /, max_options: int = 1) -> list[in
         x * min_value <= value
     in big -> small order, amount of divisors is limited by max_options
     """
-    max_options = max(1, max_options) # at least 1 option should be returned
+    max_options = max(1, max_options)  # at least 1 option should be returned
     min_value = min(min_value, value)
-    divisors = [i for i in range(min_value, value + 1) if value % i == 0] # divisors in small -> big order
-    ns = [value // i for i in divisors[:max_options]]  # has at least 1 element # big -> small order
+    divisors = [
+        i for i in range(min_value, value + 1) if value % i == 0
+    ]  # divisors in small -> big order
+    ns = [
+        value // i for i in divisors[:max_options]
+    ]  # has at least 1 element # big -> small order
     return ns
 
 
@@ -208,7 +210,7 @@ def random_divisor(value: int, min_value: int, /, max_options: int = 1) -> int:
         x * min_value <= value
     if max_options is 1, the behavior is deterministic
     """
-    ns = get_divisors(value, min_value, max_options=max_options) # get cached divisors
+    ns = get_divisors(value, min_value, max_options=max_options)  # get cached divisors
     idx = RNG_INSTANCE.randint(0, len(ns) - 1)
 
     return ns[idx]
@@ -231,21 +233,25 @@ def largest_tile_size_available(width: int, height: int) -> int:
     return largest_tile_size_available
 
 
-def iterative_closest_divisors(hw:int, aspect_ratio:float) -> tuple[int, int]:
+def iterative_closest_divisors(hw: int, aspect_ratio: float) -> tuple[int, int]:
     """
     Finds h and w such that h*w = hw and h/w = aspect_ratio
     We check all possible divisors of hw and return the closest to the aspect ratio
     """
-    divisors = [i for i in range(2, hw + 1) if hw % i == 0] # all divisors of hw
-    pairs = [(i, hw // i) for i in divisors] # all pairs of divisors of hw
-    ratios = [w/h for h, w in pairs] # all ratios of pairs of divisors of hw
-    closest_ratio = min(ratios, key=lambda x: abs(x - aspect_ratio)) # closest ratio to aspect_ratio
-    closest_pair = pairs[ratios.index(closest_ratio)] # closest pair of divisors to aspect_ratio
+    divisors = [i for i in range(2, hw + 1) if hw % i == 0]  # all divisors of hw
+    pairs = [(i, hw // i) for i in divisors]  # all pairs of divisors of hw
+    ratios = [w / h for h, w in pairs]  # all ratios of pairs of divisors of hw
+    closest_ratio = min(
+        ratios, key=lambda x: abs(x - aspect_ratio)
+    )  # closest ratio to aspect_ratio
+    closest_pair = pairs[
+        ratios.index(closest_ratio)
+    ]  # closest pair of divisors to aspect_ratio
     return closest_pair
 
 
 @cache
-def find_hw_candidates(hw:int, aspect_ratio:float) -> tuple[int, int]:
+def find_hw_candidates(hw: int, aspect_ratio: float) -> tuple[int, int]:
     """
     Finds h and w such that h*w = hw and h/w = aspect_ratio
     """
@@ -284,38 +290,63 @@ def self_attn_forward(params: HypertileParams, scale_depth=True) -> Callable:
             nw = random_divisor(w, latent_tile_size, params.swap_size)
 
             if nh * nw > 1:
-                x = rearrange(x, "b c (nh h) (nw w) -> (b nh nw) c h w", nh=nh, nw=nw)  # split into nh * nw tiles
+                x = rearrange(
+                    x, "b c (nh h) (nw w) -> (b nh nw) c h w", nh=nh, nw=nw
+                )  # split into nh * nw tiles
 
             out = params.forward(x, *args[1:], **kwargs)
 
             if nh * nw > 1:
-                out = rearrange(out, "(b nh nw) c h w -> b c (nh h) (nw w)", nh=nh, nw=nw)
+                out = rearrange(
+                    out, "(b nh nw) c h w -> b c (nh h) (nw w)", nh=nh, nw=nw
+                )
 
         # U-Net
         else:
             hw: int = x.size(1)
             h, w = find_hw_candidates(hw, params.aspect_ratio)
-            assert h * w == hw, f"Invalid aspect ratio {params.aspect_ratio} for input of shape {x.shape}, hw={hw}, h={h}, w={w}"
+            assert (
+                h * w == hw
+            ), f"Invalid aspect ratio {params.aspect_ratio} for input of shape {x.shape}, hw={hw}, h={h}, w={w}"
 
-            factor = 2 ** params.depth if scale_depth else 1
+            factor = 2**params.depth if scale_depth else 1
             nh = random_divisor(h, latent_tile_size * factor, params.swap_size)
             nw = random_divisor(w, latent_tile_size * factor, params.swap_size)
 
             if nh * nw > 1:
-                x = rearrange(x, "b (nh h nw w) c -> (b nh nw) (h w) c", h=h // nh, w=w // nw, nh=nh, nw=nw)
+                x = rearrange(
+                    x,
+                    "b (nh h nw w) c -> (b nh nw) (h w) c",
+                    h=h // nh,
+                    w=w // nw,
+                    nh=nh,
+                    nw=nw,
+                )
 
             out = params.forward(x, *args[1:], **kwargs)
 
             if nh * nw > 1:
                 out = rearrange(out, "(b nh nw) hw c -> b nh nw hw c", nh=nh, nw=nw)
-                out = rearrange(out, "b nh nw (h w) c -> b (nh h nw w) c", h=h // nh, w=w // nw)
+                out = rearrange(
+                    out, "b nh nw (h w) c -> b (nh h nw w) c", h=h // nh, w=w // nw
+                )
 
         return out
 
     return wrapper
 
 
-def hypertile_hook_model(model: nn.Module, width, height, *, enable=False, tile_size_max=128, swap_size=1, max_depth=3, is_sdxl=False):
+def hypertile_hook_model(
+    model: nn.Module,
+    width,
+    height,
+    *,
+    enable=False,
+    tile_size_max=128,
+    swap_size=1,
+    max_depth=3,
+    is_sdxl=False,
+):
     hypertile_layers = getattr(model, "__webui_hypertile_layers", None)
     if hypertile_layers is None:
         if not enable:

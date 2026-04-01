@@ -1,5 +1,6 @@
 import dataclasses
 import os
+
 import gradio as gr
 
 from modules import errors, shared
@@ -140,6 +141,7 @@ class ScriptPostprocessingRunner:
     def scripts_in_preferred_order(self):
         if self.scripts is None:
             import modules.scripts
+
             self.initialize_scripts(modules.scripts.postprocessing_scripts_data)
 
         scripts_order = shared.opts.postprocessing_operation_order
@@ -152,8 +154,18 @@ class ScriptPostprocessingRunner:
 
             return len(self.scripts)
 
-        filtered_scripts = [script for script in self.scripts if script.name not in scripts_filter_out]
-        script_scores = {script.name: (script_score(script.name), script.order, script.name, original_index) for original_index, script in enumerate(filtered_scripts)}
+        filtered_scripts = [
+            script for script in self.scripts if script.name not in scripts_filter_out
+        ]
+        script_scores = {
+            script.name: (
+                script_score(script.name),
+                script.order,
+                script.name,
+                original_index,
+            )
+            for original_index, script in enumerate(filtered_scripts)
+        }
 
         return sorted(filtered_scripts, key=lambda x: script_scores[x.name])
 
@@ -173,7 +185,7 @@ class ScriptPostprocessingRunner:
         scripts = []
 
         for script in self.scripts_in_preferred_order():
-            script_args = args[script.args_from:script.args_to]
+            script_args = args[script.args_from : script.args_to]
 
             process_args = {}
             for (name, _component), value in zip(script.controls.items(), script_args):
@@ -227,4 +239,3 @@ class ScriptPostprocessingRunner:
     def image_changed(self):
         for script in self.scripts_in_preferred_order():
             script.image_changed()
-

@@ -10,7 +10,7 @@ class ModuleTypeFull(network.ModuleType):
 
 
 class NetworkModuleFull(network.NetworkModule):
-    def __init__(self,  net: network.Network, weights: network.NetworkWeights):
+    def __init__(self, net: network.Network, weights: network.NetworkWeights):
         super().__init__(net, weights)
 
         self.weight = weights.w.get("diff")

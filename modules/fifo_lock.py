@@ -1,5 +1,5 @@
-import threading
 import collections
+import threading
 
 
 # reference: https://gist.github.com/vitaliyp/6d54dd76ca2c3cdfc1149d33007dc34a

@@ -1,8 +1,8 @@
+import lyco_helpers
+import network
 import torch
 
-import lyco_helpers
 import modules.models.sd3.mmdit
-import network
 from modules import devices
 
 
@@ -14,7 +14,12 @@ class ModuleTypeLora(network.ModuleType):
         if all(x in weights.w for x in ["lora_A.weight", "lora_B.weight"]):
             w = weights.w.copy()
             weights.w.clear()
-            weights.w.update({"lora_up.weight": w["lora_B.weight"], "lora_down.weight": w["lora_A.weight"]})
+            weights.w.update(
+                {
+                    "lora_up.weight": w["lora_B.weight"],
+                    "lora_down.weight": w["lora_A.weight"],
+                }
+            )
 
             return NetworkModuleLora(net, weights)
 
@@ -22,7 +27,7 @@ class ModuleTypeLora(network.ModuleType):
 
 
 class NetworkModuleLora(network.NetworkModule):
-    def __init__(self,  net: network.Network, weights: network.NetworkWeights):
+    def __init__(self, net: network.Network, weights: network.NetworkWeights):
         super().__init__(net, weights)
 
         self.up_model = self.create_module(weights.w, "lora_up.weight")
@@ -37,7 +42,12 @@ class NetworkModuleLora(network.NetworkModule):
         if weight is None and none_ok:
             return None
 
-        is_linear = type(self.sd_module) in [torch.nn.Linear, torch.nn.modules.linear.NonDynamicallyQuantizableLinear, torch.nn.MultiheadAttention, modules.models.sd3.mmdit.QkvLinear]
+        is_linear = type(self.sd_module) in [
+            torch.nn.Linear,
+            torch.nn.modules.linear.NonDynamicallyQuantizableLinear,
+            torch.nn.MultiheadAttention,
+            modules.models.sd3.mmdit.QkvLinear,
+        ]
         is_conv = type(self.sd_module) in [torch.nn.Conv2d]
 
         if is_linear:
@@ -48,15 +58,35 @@ class NetworkModuleLora(network.NetworkModule):
                 weight = weight.reshape(weight.shape[0], -1, 1, 1)
 
             if weight.shape[2] != 1 or weight.shape[3] != 1:
-                module = torch.nn.Conv2d(weight.shape[1], weight.shape[0], self.sd_module.kernel_size, self.sd_module.stride, self.sd_module.padding, bias=False)
+                module = torch.nn.Conv2d(
+                    weight.shape[1],
+                    weight.shape[0],
+                    self.sd_module.kernel_size,
+                    self.sd_module.stride,
+                    self.sd_module.padding,
+                    bias=False,
+                )
             else:
-                module = torch.nn.Conv2d(weight.shape[1], weight.shape[0], (1, 1), bias=False)
+                module = torch.nn.Conv2d(
+                    weight.shape[1], weight.shape[0], (1, 1), bias=False
+                )
         elif is_conv and key == "lora_mid.weight":
-            module = torch.nn.Conv2d(weight.shape[1], weight.shape[0], self.sd_module.kernel_size, self.sd_module.stride, self.sd_module.padding, bias=False)
+            module = torch.nn.Conv2d(
+                weight.shape[1],
+                weight.shape[0],
+                self.sd_module.kernel_size,
+                self.sd_module.stride,
+                self.sd_module.padding,
+                bias=False,
+            )
         elif is_conv and key == "lora_up.weight" or key == "dyn_down":
-            module = torch.nn.Conv2d(weight.shape[1], weight.shape[0], (1, 1), bias=False)
+            module = torch.nn.Conv2d(
+                weight.shape[1], weight.shape[0], (1, 1), bias=False
+            )
         else:
-            raise AssertionError(f'Lora layer {self.network_key} matched a layer with unsupported type: {type(self.sd_module).__name__}')
+            raise AssertionError(
+                f"Lora layer {self.network_key} matched a layer with unsupported type: {type(self.sd_module).__name__}"
+            )
 
         with torch.no_grad():
             if weight.shape != module.weight.shape:
@@ -81,7 +111,9 @@ class NetworkModuleLora(network.NetworkModule):
         else:
             if len(down.shape) == 4:
                 output_shape += down.shape[2:]
-            updown = lyco_helpers.rebuild_conventional(up, down, output_shape, self.network.dyn_dim)
+            updown = lyco_helpers.rebuild_conventional(
+                up, down, output_shape, self.network.dyn_dim
+            )
 
         return self.finalize_updown(updown, orig_weight, output_shape)
 
@@ -89,6 +121,7 @@ class NetworkModuleLora(network.NetworkModule):
         self.up_model.to(device=devices.device)
         self.down_model.to(device=devices.device)
 
-        return y + self.up_model(self.down_model(x)) * self.multiplier() * self.calc_scale()
-
-
+        return (
+            y
+            + self.up_model(self.down_model(x)) * self.multiplier() * self.calc_scale()
+        )

@@ -4,17 +4,19 @@ import network
 
 class ModuleTypeHada(network.ModuleType):
     def create_module(self, net: network.Network, weights: network.NetworkWeights):
-        if all(x in weights.w for x in ["hada_w1_a", "hada_w1_b", "hada_w2_a", "hada_w2_b"]):
+        if all(
+            x in weights.w for x in ["hada_w1_a", "hada_w1_b", "hada_w2_a", "hada_w2_b"]
+        ):
             return NetworkModuleHada(net, weights)
 
         return None
 
 
 class NetworkModuleHada(network.NetworkModule):
-    def __init__(self,  net: network.Network, weights: network.NetworkWeights):
+    def __init__(self, net: network.Network, weights: network.NetworkWeights):
         super().__init__(net, weights)
 
-        if hasattr(self.sd_module, 'weight'):
+        if hasattr(self.sd_module, "weight"):
             self.shape = self.sd_module.weight.shape
 
         self.w1a = weights.w["hada_w1_a"]

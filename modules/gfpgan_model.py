@@ -5,17 +5,13 @@ import os
 
 import torch
 
-from modules import (
-    devices,
-    errors,
-    face_restoration,
-    face_restoration_utils,
-    modelloader,
-    shared,
-)
+from modules import (devices, errors, face_restoration, face_restoration_utils,
+                     modelloader, shared)
 
 logger = logging.getLogger(__name__)
-model_url = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+model_url = (
+    "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
+)
 model_download_name = "GFPGANv1.4.pth"
 gfpgan_face_restorer: face_restoration.FaceRestoration | None = None
 
@@ -33,13 +29,13 @@ class FaceRestorerGFPGAN(face_restoration_utils.CommonFaceRestoration):
             model_url=model_url,
             command_path=self.model_path,
             download_name=model_download_name,
-            ext_filter=['.pth'],
+            ext_filter=[".pth"],
         ):
-            if 'GFPGAN' in os.path.basename(model_path):
+            if "GFPGAN" in os.path.basename(model_path):
                 return modelloader.load_spandrel_model(
                     model_path,
                     device=self.get_device(),
-                    expected_architecture='GFPGAN',
+                    expected_architecture="GFPGAN",
                 ).model
         raise ValueError("No GFPGAN model found")
 
